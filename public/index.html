@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Booking Room SWRS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+        .container {
+            max-width: 960px;
+        }
+        .message-box {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: #4CAF50;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+            pointer-events: none;
+        }
+        .message-box.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .h-layout-container {
+            position: relative;
+            width: 100%;
+            padding-top: 66.67%;
+            background-image: url('https://placehold.co/900x600/ffffff/ffffff');
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+        }
+        .room {
+            position: absolute;
+            width: 8%;
+            height: 11%;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.75rem;
+            color: white;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .room:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+        .room.available {
+            background-color: #34D399;
+            cursor: pointer;
+        }
+        .room.special {
+            background-color: #60A5FA;
+            cursor: pointer;
+        }
+        .room.booked {
+            background-color: #F87171;
+        }
+        .room.logo-thai-flag::before {
+            content: '🚩';
+            position: absolute;
+            top: 0%;
+            left: -250%;
+            font-size: 1.5rem;
+            transform: scaleX(-1);
+        }
+        .room.logo-pig::before {
+            content: '🐷';
+            position: absolute;
+            top: 0%;
+            left: 250%;
+            font-size: 1.5rem;
+        }
+        .tab-button {
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 8px 8px 0 0;
+            font-weight: 600;
+            transition: background-color 0.2s;
+        }
+        .tab-button.active {
+            background-color: #fff;
+            color: #4338ca;
+        }
+        .tab-button:not(.active) {
+            background-color: #e5e7eb;
+            color: #6b7280;
+        }
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background-color: white;
+            padding: 24px;
+            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            max-width: 400px;
+            width: 90%;
+            position: relative;
+        }
+        .close-button {
+            position: absolute;
+            top: 8px;
+            right: 12px;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 5px;
+        }
+        .calendar-day-header, .calendar-day {
+            text-align: center;
+            padding: 8px;
+            border-radius: 4px;
+        }
+        .calendar-day-header {
+            font-weight: 600;
+            color: #4b5563;
+        }
+        .calendar-day {
+            background-color: #e5e7eb;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .calendar-day:hover {
+            background-color: #d1d5db;
+        }
+        .calendar-day.current-day {
+            background-color: #4338ca;
+            color: white;
+        }
+        .calendar-day.selected-day {
+            background-color: #6366f1;
+            color: white;
+            border: 2px solid #4338ca;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+
+    <div id="login-container" class="bg-white p-8 rounded-lg shadow-xl w-full max-w-sm">
+        <h2 class="text-2xl font-bold text-center text-gray-800 mb-6">เข้าสู่ระบบ</h2>
+        <form id="login-form" class="space-y-4">
+            <div>
+                <label for="student-id" class="block text-sm font-medium text-gray-700">รหัสบัตรนักเรียน:</label>
+                <input type="text" id="student-id" name="student-id" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" required>
+            </div>
+            <div>
+                <label for="birthday" class="block text-sm font-medium text-gray-700">วันเกิด:</label>
+                <input type="date" id="birthday" name="birthday" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" required>
+            </div>
+            <div>
+                <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                    เข้าสู่ระบบ
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <div id="main-app-container" class="container mx-auto p-6 bg-white rounded-lg shadow-xl hidden">
+        <h1 class="text-3xl md:text-4xl font-bold text-center text-gray-800 mb-6">ระบบจองห้องเรียน</h1>
+        <p class="text-center text-gray-600 mb-8">โรงเรียนสารสาสน์วิเทศรังสิต ตึก 3</p>
+
+        <div class="text-center text-sm text-gray-500 mb-4">
+            รหัสบัตรนักเรียน: <span id="student-id-display"></span>
+        </div>
+
+        <div class="flex justify-center mb-4 border-b border-gray-200">
+            <button id="main-tab" class="tab-button active">หน้าหลัก</button>
+            <button id="history-tab" class="tab-button">ประวัติการจอง</button>
+            <button id="calendar-tab" class="tab-button">ปฏิทิน</button>
+        </div>
+
+        <div id="main-content">
+            <div class="mb-6 flex justify-center">
+                <label for="floor-select" class="block text-sm font-medium text-gray-700 mr-2">เลือกชั้น:</label>
+                <select id="floor-select" name="floor" class="mt-1 block px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                </select>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-x-16">
+                <div class="bg-gray-50 p-6 rounded-lg shadow-inner">
+                    <h2 class="text-2xl font-semibold text-gray-800 mb-4 text-center">ผังห้องเรียน (ชั้น <span id="current-floor">1</span>)</h2>
+                    <div id="classroom-layout" class="h-layout-container w-full mx-auto">
+                    </div>
+                </div>
+
+                <div id="booking-form-container" class="bg-gray-50 p-6 rounded-lg shadow-inner hidden">
+                    <h2 id="form-title" class="text-2xl font-semibold text-gray-700 mb-4">ฟอร์มการจอง</h2>
+                    <form id="booking-form" class="space-y-4">
+                        <div>
+                            <label for="teacher" class="block text-sm font-medium text-gray-700">ชื่อผู้สอน:</label>
+                            <input type="text" id="teacher" name="teacher" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" required>
+                        </div>
+                        <div>
+                            <label for="subject" class="block text-sm font-medium text-gray-700">วิชา:</label>
+                            <input type="text" id="subject" name="subject" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" required>
+                        </div>
+                        <div>
+                            <label for="date" class="block text-sm font-medium text-gray-700">วันที่:</label>
+                            <input type="date" id="date" name="date" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" required>
+                        </div>
+                        <div>
+                            <label for="time" class="block text-sm font-medium text-gray-700">เวลา:</label>
+                            <select id="time" name="time" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" required>
+                                <option value="">เลือกเวลา</option>
+                                <option value="08:10">08:10 - 09:00</option>
+                                <option value="09:00">09:00 - 9:50</option>
+                                <option value="09:50">09:50 - 10:40</option>
+                                <option value="10:55">10:55 - 11:45</option>
+                                <option value="11:45">11:45 - 12:35</option>
+                                <option value="13:35">13:35 - 14:25</option>
+                                <option value="14:25">14:25 - 15:15</option>
+                                <option value="15:30">15:30 - 16:20</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="purpose" class="block text-sm font-medium text-gray-700">วัตถุประสงค์:</label>
+                            <textarea id="purpose" name="purpose" rows="3" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" required></textarea>
+                        </div>
+                        <div>
+                            <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                                ยืนยันการจอง
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div id="booking-history-container" class="hidden">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4">ประวัติการจอง</h2>
+            <div id="booking-list" class="space-y-4">
+                <p class="text-gray-500 text-center">ยังไม่มีการจอง</p>
+            </div>
+        </div>
+        
+        <div id="calendar-container" class="hidden">
+            <div class="bg-gray-50 p-6 rounded-lg shadow-inner">
+                <div class="flex justify-between items-center mb-4">
+                    <button id="prev-month-btn" class="text-indigo-600 hover:text-indigo-800 font-bold">&lt; เดือนก่อนหน้า</button>
+                    <h3 id="current-month-year" class="text-xl font-semibold text-gray-800"></h3>
+                    <button id="next-month-btn" class="text-indigo-600 hover:text-indigo-800 font-bold">เดือนถัดไป &gt;</button>
+                </div>
+                <div id="calendar-grid" class="calendar-grid">
+                    <div class="calendar-day-header">อา</div>
+                    <div class="calendar-day-header">จ</div>
+                    <div class="calendar-day-header">อ</div>
+                    <div class="calendar-day-header">พ</div>
+                    <div class="calendar-day-header">พฤ</div>
+                    <div class="calendar-day-header">ศ</div>
+                    <div class="calendar-day-header">ส</div>
+                </div>
+                <div class="mt-6">
+                    <h4 class="text-lg font-semibold text-gray-700 mb-2">รายการจองสำหรับวันที่ <span id="selected-date-display"></span></h4>
+                    <div class="mb-4">
+                        <label for="room-filter" class="block text-sm font-medium text-gray-700 mb-1">ค้นหาห้อง:</label>
+                        <select id="room-filter" class="w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                        </select>
+                    </div>
+                    <div id="daily-bookings-list" class="space-y-2">
+                        <p class="text-gray-500">เลือกวันเพื่อดูรายการจอง</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div id="message-box" class="message-box">
+        <p id="message-text"></p>
+    </div>
+
+    <div id="confirm-cancel-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h3 class="text-xl font-bold mb-4">ยืนยันการยกเลิก</h3>
+            <p id="confirm-cancel-message" class="mb-4">คุณต้องการยกเลิกการจองนี้ใช่หรือไม่?</p>
+            <div class="flex justify-end space-x-4">
+                <button id="cancel-confirm-btn" class="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600">ใช่, ยกเลิก</button>
+                <button id="cancel-no-btn" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">ไม่</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="booking-details-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <span class="close-button" id="close-modal">&times;</span>
+            <h3 class="text-xl font-bold mb-4">รายละเอียดการจอง</h3>
+            <p><span class="font-semibold">ห้อง:</span> <span id="modal-room-name"></span></p>
+            <p><span class="font-semibold">ผู้สอน:</span> <span id="modal-teacher"></span></p>
+            <p><span class="font-semibold">วิชา:</span> <span id="modal-subject"></span></p>
+            <p><span class="font-semibold">วันที่:</span> <span id="modal-date"></span></p>
+            <p><span class="font-semibold">เวลา:</span> <span id="modal-time"></span></p>
+            <p><span class="font-semibold">วัตถุประสงค์:</span> <span id="modal-purpose"></span></p>
+            <p><span class="font-semibold">รหัสบัตรนักเรียน:</span> <span id="modal-student-id"></span></p>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithCustomToken, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        let db;
+        let loggedInStudentId = null;
+
+        const floors = 7;
+        const roomsPerFloor = 22;
+        const classrooms = [];
+        let liveBookings = [];
+        let currentCalendarDate = new Date();
+
+        const roomCoordinates = {
+            1: { top: '0%', left: '5%' },
+            2: { top: '0%', left: '15%' },
+            3: { top: '20%', left: '15%' },
+            4: { top: '35%', left: '15%' },
+            5: { top: '50%', left: '15%' },
+            6: { top: '65%', left: '15%' },
+            7: { top: '80%', left: '15%' },
+            8: { top: '100%', left: '5%' },
+            9: { top: '100%', left: '15%' },
+            10: { top: '50%', left: '30%' },
+            11: { top: '50%', left: '40%' },
+            12: { top: '50%', left: '50%' },
+            13: { top: '50%', left: '60%' },
+            14: { top: '0%', left: '75%' },
+            15: { top: '0%', left: '85%' },
+            16: { top: '20%', left: '75%' },
+            17: { top: '35%', left: '75%' },
+            18: { top: '50%', left: '75%' },
+            19: { top: '65%', left: '75%' },
+            20: { top: '80%', left: '75%' },
+            21: { top: '100%', left: '75%' },
+            22: { top: '100%', left: '85%' },
+        };
+        
+        for (let i = 1; i <= floors; i++) {
+            for (let j = 1; j <= roomsPerFloor; j++) {
+                let roomType;
+                let roomLogo = null;
+                
+                if ((i >= 2 && i <= 4) && (j >= 10 && j <= 13)) {
+                    roomType = 'special';
+                } else {
+                    roomType = 'available';
+                }
+                
+                if (j === 5) {
+                    roomLogo = 'thai-flag';
+                }
+                if (j === 18) {
+                    roomLogo = 'pig';
+                }
+                
+                classrooms.push({
+                    id: `F${i}-R${j}`,
+                    name: `ห้อง ${i}${String(j).padStart(2, '0')}`,
+                    type: roomType,
+                    coords: roomCoordinates[j],
+                    logo: roomLogo
+                });
+            }
+        }
+        
+        const loginContainer = document.getElementById('login-container');
+        const mainAppContainer = document.getElementById('main-app-container');
+        const loginForm = document.getElementById('login-form');
+        const studentIdDisplay = document.getElementById('student-id-display');
+        const mainTab = document.getElementById('main-tab');
+        const historyTab = document.getElementById('history-tab');
+        const calendarTab = document.getElementById('calendar-tab');
+        const mainContent = document.getElementById('main-content');
+        const historyContent = document.getElementById('booking-history-container');
+        const calendarContent = document.getElementById('calendar-container');
+        const floorSelect = document.getElementById('floor-select');
+        const currentFloorDisplay = document.getElementById('current-floor');
+        const classroomLayout = document.getElementById('classroom-layout');
+        const bookingFormContainer = document.getElementById('booking-form-container');
+        const bookingForm = document.getElementById('booking-form');
+        const formTitle = document.getElementById('form-title');
+        const messageBox = document.getElementById('message-box');
+        const messageText = document.getElementById('message-text');
+        const bookingList = document.getElementById('booking-list');
+        const bookingDetailsModal = document.getElementById('booking-details-modal');
+        const closeModalBtn = document.getElementById('close-modal');
+        const confirmCancelModal = document.getElementById('confirm-cancel-modal');
+        const cancelConfirmBtn = document.getElementById('cancel-confirm-btn');
+        const cancelNoBtn = document.getElementById('cancel-no-btn');
+        const currentMonthYearDisplay = document.getElementById('current-month-year');
+        const prevMonthBtn = document.getElementById('prev-month-btn');
+        const nextMonthBtn = document.getElementById('next-month-btn');
+        const calendarGrid = document.getElementById('calendar-grid');
+        const dailyBookingsList = document.getElementById('daily-bookings-list');
+        const selectedDateDisplay = document.getElementById('selected-date-display');
+        const roomFilterSelect = document.getElementById('room-filter');
+        
+        let selectedClassroomId = null;
+        let bookingToDeleteId = null;
+        let selectedCalendarDate = new Date();
+
+        function formatDate(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function showMessage(message, isError = false) {
+            messageText.textContent = message;
+            messageBox.style.backgroundColor = isError ? '#f44336' : '#4CAF50';
+            messageBox.classList.add('show');
+            setTimeout(() => {
+                messageBox.classList.remove('show');
+            }, 3000);
+        }
+
+        function renderClassrooms() {
+            const floor = floorSelect.value;
+            const date = document.getElementById('date').value;
+            const time = document.getElementById('time').value;
+
+            currentFloorDisplay.textContent = floor;
+            const allFloorRooms = classrooms.filter(c => c.id.startsWith(`F${floor}-`));
+            
+            let roomsToRender;
+            if (parseInt(floor) === 1) {
+                roomsToRender = allFloorRooms.filter(c => {
+                    const roomNumber = parseInt(c.id.split('-R')[1]);
+                    return roomNumber < 10 || roomNumber > 13;
+                });
+            } else {
+                roomsToRender = allFloorRooms;
+            }
+
+            classroomLayout.innerHTML = '';
+            
+            roomsToRender.forEach(classroom => {
+                const classroomItem = document.createElement('div');
+                const booking = liveBookings.find(b => b.classroomId === classroom.id && b.date === date && b.time === time);
+                let roomClasses = `room ${classroom.type}`;
+
+                if (booking) {
+                    roomClasses = `room booked`;
+                    classroomItem.style.cursor = 'not-allowed';
+                    classroomItem.addEventListener('click', () => {
+                        showMessage('ห้องนี้ถูกจองแล้วในช่วงเวลานี้. โปรดเลือกวันหรือเวลาอื่นเพื่อจอง', true);
+                    });
+                } else {
+                    roomClasses = `room available`;
+                    classroomItem.style.cursor = 'pointer';
+                    classroomItem.addEventListener('click', () => {
+                        selectedClassroomId = classroom.id;
+                        formTitle.textContent = `จอง ${classroom.name}`;
+                        bookingFormContainer.classList.remove('hidden');
+                        bookingFormContainer.scrollIntoView({ behavior: 'smooth' });
+                    });
+                }
+                
+                if (classroom.logo) {
+                    roomClasses += ` logo-${classroom.logo}`;
+                }
+
+                classroomItem.className = roomClasses;
+                classroomItem.textContent = classroom.name;
+                classroomItem.style.top = classroom.coords.top;
+                classroomItem.style.left = classroom.coords.left;
+                
+                classroomLayout.appendChild(classroomItem);
+            });
+        }
+
+        function renderBookingHistory() {
+            const userBookings = liveBookings.filter(booking => booking.studentId === loggedInStudentId);
+
+            if (userBookings.length === 0) {
+                bookingList.innerHTML = '<p class="text-gray-500 text-center">ยังไม่มีการจองในประวัติของคุณ</p>';
+                return;
+            }
+
+            bookingList.innerHTML = '';
+
+            userBookings.forEach(booking => {
+                const bookingItem = document.createElement('div');
+                bookingItem.className = "p-4 bg-gray-100 rounded-lg shadow-sm flex justify-between items-center";
+                bookingItem.innerHTML = `
+                    <div>
+                        <p><span class="font-semibold">ห้อง:</span> ${booking.classroomName}</p>
+                        <p><span class="font-semibold">ผู้สอน:</span> ${booking.teacher}</p>
+                        <p><span class="font-semibold">วิชา:</span> ${booking.subject}</p>
+                        <p><span class="font-semibold">วันที่:</span> ${booking.date}</p>
+                        <p><span class="font-semibold">เวลา:</span> ${booking.time}</p>
+                        <p><span class="font-semibold">วัตถุประสงค์:</span> ${booking.purpose}</p>
+                        <p><span class="font-semibold">รหัสบัตรนักเรียน:</span> ${booking.studentId}</p>
+                    </div>
+                    <button class="cancel-booking-btn bg-red-500 text-white px-3 py-1 rounded-md hover:bg-red-600 transition-colors" data-id="${booking.id}">ยกเลิก</button>
+                `;
+                bookingList.appendChild(bookingItem);
+            });
+
+            const cancelButtons = document.querySelectorAll('.cancel-booking-btn');
+            cancelButtons.forEach(button => {
+                button.addEventListener('click', (event) => {
+                    bookingToDeleteId = event.target.dataset.id;
+                    confirmCancelModal.classList.remove('hidden');
+                });
+            });
+        }
+        
+        function renderCalendar() {
+            calendarGrid.innerHTML = '';
+            const today = new Date();
+            const firstDayOfMonth = new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth(), 1);
+            const lastDayOfMonth = new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth() + 1, 0);
+            const startDay = firstDayOfMonth.getDay();
+            
+            const thaiMonths = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+            currentMonthYearDisplay.textContent = `${thaiMonths[currentCalendarDate.getMonth()]} ${currentCalendarDate.getFullYear()}`;
+            
+            for (let i = 0; i < startDay; i++) {
+                const emptyCell = document.createElement('div');
+                emptyCell.className = "calendar-day";
+                emptyCell.style.visibility = 'hidden';
+                calendarGrid.appendChild(emptyCell);
+            }
+            
+            for (let day = 1; day <= lastDayOfMonth.getDate(); day++) {
+                const dayCell = document.createElement('div');
+                const date = new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth(), day);
+                const dateString = formatDate(date);
+                dayCell.textContent = day;
+                dayCell.className = 'calendar-day';
+                dayCell.dataset.date = dateString;
+
+                if (dateString === formatDate(today)) {
+                    dayCell.classList.add('current-day');
+                }
+                if (dateString === formatDate(selectedCalendarDate)) {
+                    dayCell.classList.add('selected-day');
+                }
+
+                dayCell.addEventListener('click', () => {
+                    selectedCalendarDate = date;
+                    document.querySelectorAll('.calendar-day').forEach(cell => cell.classList.remove('selected-day'));
+                    dayCell.classList.add('selected-day');
+                    displayBookingsForDate(date);
+                });
+                calendarGrid.appendChild(dayCell);
+            }
+            
+            populateRoomFilter();
+
+            displayBookingsForDate(selectedCalendarDate);
+        }
+        
+        function populateRoomFilter() {
+            roomFilterSelect.innerHTML = '<option value="">ทั้งหมด</option>';
+            classrooms.forEach(room => {
+                const option = document.createElement('option');
+                option.value = room.id;
+                option.textContent = room.name;
+                roomFilterSelect.appendChild(option);
+            });
+            roomFilterSelect.addEventListener('change', () => {
+                displayBookingsForDate(selectedCalendarDate);
+            });
+        }
+
+        function displayBookingsForDate(date) {
+            const dateString = formatDate(date);
+            selectedDateDisplay.textContent = dateString;
+            dailyBookingsList.innerHTML = '';
+            
+            let bookingsOnDate = liveBookings.filter(b => b.date === dateString);
+            
+            const selectedRoomId = roomFilterSelect.value;
+            if (selectedRoomId) {
+                bookingsOnDate = bookingsOnDate.filter(b => b.classroomId === selectedRoomId);
+            }
+
+            if (bookingsOnDate.length === 0) {
+                dailyBookingsList.innerHTML = '<p class="text-gray-500">ไม่มีการจองในวันนี้</p>';
+                return;
+            }
+
+            bookingsOnDate.sort((a, b) => a.time.localeCompare(b.time));
+
+            bookingsOnDate.forEach(booking => {
+                const bookingItem = document.createElement('div');
+                bookingItem.className = "p-3 bg-white rounded-md shadow-sm";
+                bookingItem.innerHTML = `
+                    <p><span class="font-semibold">ห้อง:</span> ${booking.classroomName}</p>
+                    <p><span class="font-semibold">เวลา:</span> ${booking.time}</p>
+                    <p><span class="font-semibold">ผู้จอง:</span> ${booking.studentId}</p>
+                `;
+                dailyBookingsList.appendChild(bookingItem);
+            });
+        }
+        
+        async function handleCancelBooking() {
+            if (!bookingToDeleteId) return;
+
+            try {
+                const docRef = doc(db, `artifacts/${appId}/public/data/bookings`, bookingToDeleteId);
+                await deleteDoc(docRef);
+                showMessage('การจองถูกยกเลิกแล้ว');
+            } catch (error) {
+                console.error("Error deleting document: ", error);
+                showMessage('มีข้อผิดพลาดในการยกเลิกการจอง', true);
+            } finally {
+                confirmCancelModal.classList.add('hidden');
+                bookingToDeleteId = null;
+            }
+        }
+
+        bookingForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            if (!loggedInStudentId) {
+                showMessage('กรุณาเข้าสู่ระบบก่อน', true);
+                return;
+            }
+
+            const teacher = document.getElementById('teacher').value;
+            const subject = document.getElementById('subject').value;
+            const date = document.getElementById('date').value;
+            const time = document.getElementById('time').value;
+            const purpose = document.getElementById('purpose').value;
+            
+            const isBooked = liveBookings.some(b => b.classroomId === selectedClassroomId && b.date === date && b.time === time);
+
+            if (isBooked) {
+                showMessage('ช่วงเวลานี้ถูกจองแล้ว กรุณาเลือกเวลาอื่น', true);
+                return;
+            }
+
+            const selectedClassroom = classrooms.find(c => c.id === selectedClassroomId);
+            const newBooking = {
+                classroomId: selectedClassroomId,
+                classroomName: selectedClassroom.name,
+                teacher: teacher,
+                subject: subject,
+                date: date,
+                time: time,
+                purpose: purpose,
+                studentId: loggedInStudentId,
+            };
+
+            try {
+                const bookingRef = collection(db, `artifacts/${appId}/public/data/bookings`);
+                await addDoc(bookingRef, newBooking);
+                
+                showMessage('จองห้องเรียนสำเร็จ!');
+
+                bookingForm.reset();
+                bookingFormContainer.classList.add('hidden');
+                selectedClassroomId = null;
+                renderClassrooms();
+            } catch (error) {
+                console.error("Error adding document: ", error);
+                showMessage('มีข้อผิดพลาดในการจอง', true);
+            }
+        });
+
+        mainTab.addEventListener('click', () => {
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            mainTab.classList.add('active');
+            mainContent.classList.remove('hidden');
+            historyContent.classList.add('hidden');
+            calendarContent.classList.add('hidden');
+            renderClassrooms();
+        });
+
+        historyTab.addEventListener('click', () => {
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            historyTab.classList.add('active');
+            mainContent.classList.add('hidden');
+            historyContent.classList.remove('hidden');
+            calendarContent.classList.add('hidden');
+            renderBookingHistory();
+        });
+
+        calendarTab.addEventListener('click', () => {
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            calendarTab.classList.add('active');
+            mainContent.classList.add('hidden');
+            historyContent.classList.add('hidden');
+            calendarContent.classList.remove('hidden');
+            renderCalendar();
+        });
+
+        prevMonthBtn.addEventListener('click', () => {
+            currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 1);
+            selectedCalendarDate = new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth(), 1);
+            renderCalendar();
+        });
+
+        nextMonthBtn.addEventListener('click', () => {
+            currentCalendarDate.setMonth(currentCalendarDate.getMonth() + 1);
+            selectedCalendarDate = new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth(), 1);
+            renderCalendar();
+        });
+
+        closeModalBtn.addEventListener('click', () => {
+            bookingDetailsModal.classList.add('hidden');
+        });
+
+        cancelConfirmBtn.addEventListener('click', handleCancelBooking);
+        cancelNoBtn.addEventListener('click', () => {
+            confirmCancelModal.classList.add('hidden');
+            bookingToDeleteId = null;
+        });
+
+        loginForm.addEventListener('submit', (event) => {
+            event.preventDefault();
+            const studentId = document.getElementById('student-id').value;
+            const birthday = document.getElementById('birthday').value;
+
+            if (studentId && birthday) {
+                loggedInStudentId = studentId;
+                studentIdDisplay.textContent = loggedInStudentId;
+                
+                loginContainer.classList.add('hidden');
+                mainAppContainer.classList.remove('hidden');
+                showMessage('เข้าสู่ระบบสำเร็จ!');
+
+                initializeAppUI();
+                setupFirestoreListener();
+
+            } else {
+                showMessage('กรุณากรอกรหัสบัตรนักเรียนและวันเกิด', true);
+            }
+        });
+
+        function initializeAppUI() {
+            for (let i = 1; i <= floors; i++) {
+                const option = document.createElement('option');
+                option.value = i;
+                option.textContent = `ชั้น ${i}`;
+                floorSelect.appendChild(option);
+            }
+            
+            const initialFloor = 1;
+            floorSelect.value = initialFloor;
+
+            const dateInput = document.getElementById('date');
+            const timeInput = document.getElementById('time');
+            dateInput.addEventListener('change', renderClassrooms);
+            timeInput.addEventListener('change', renderClassrooms);
+            floorSelect.addEventListener('change', renderClassrooms);
+        }
+
+        function setupFirestoreListener() {
+            if (!db) {
+                console.error("Firestore is not initialized.");
+                return;
+            }
+            const bookingRef = collection(db, `artifacts/${appId}/public/data/bookings`);
+            
+            onSnapshot(bookingRef, (querySnapshot) => {
+                liveBookings = [];
+                querySnapshot.forEach((doc) => {
+                    liveBookings.push({ id: doc.id, ...doc.data() });
+                });
+                console.log("Real-time booking data updated:", liveBookings);
+                renderClassrooms();
+                renderBookingHistory();
+                renderCalendar(); 
+            }, (error) => {
+                console.error("Error getting real-time updates:", error);
+                showMessage('ไม่สามารถโหลดข้อมูลการจองได้', true);
+            });
+        }
+        
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                const auth = getAuth(app);
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                    console.log("Signed in with custom token.");
+                } else {
+                    await signInAnonymously(auth);
+                    console.log("Signed in anonymously.");
+                }
+                console.log("Firebase and authentication initialized. Awaiting user login.");
+            } catch (error) {
+                console.error("Error initializing Firebase:", error);
+                showMessage('Failed to initialize app. Please check the console.', true);
+            }
+        });
+    </script>
+</body>
+</html>

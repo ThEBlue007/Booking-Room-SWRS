@@ -1,6 +1,7 @@
 {
   "hosting": {
-    "public": "build",
+    "site": "swrs-booking-room",
+    "public": "public",
     "ignore": [
       "firebase.json",
       "**/.*",
@@ -14,3 +15,4 @@
     ]
   }
 }
+
