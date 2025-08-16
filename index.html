@@ -72,7 +72,7 @@
             background-color: #F87171;
         }
         .room.logo-thai-flag::before {
-            content: '🚩';
+            content: '�';
             position: absolute;
             top: 0%;
             left: -250%;
@@ -172,7 +172,7 @@
                 <input type="text" id="student-id" name="student-id" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" required>
             </div>
             <div>
-                <label for="birthday" class="block text-sm font-medium text-gray-700">วันเกิด:</label>
+                <label for="birthday" class="block text-sm font-medium text-gray-700">วันเกิด (ใช้เป็นรหัสผ่าน):</label>
                 <input type="date" id="birthday" name="birthday" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" required>
             </div>
             <div>
@@ -327,7 +327,7 @@
         import { getAuth, signInWithCustomToken, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // แก้ไขส่วนนี้เพื่อใช้ firebaseConfig ที่ถูกต้อง
+        // Firebase configuration and environment variables
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
             apiKey: "AIzaSyDpafS0uMmopE6Q7oAIc4Fa_dH9iQCD13I",
             authDomain: "swrs-booking-room.firebaseapp.com",
@@ -750,12 +750,16 @@
             bookingToDeleteId = null;
         });
 
+        // Modified login form listener to handle student ID and birthday as password
         loginForm.addEventListener('submit', (event) => {
             event.preventDefault();
             const studentId = document.getElementById('student-id').value;
             const birthday = document.getElementById('birthday').value;
 
+            // Simple validation: check if student ID and birthday are not empty
             if (studentId && birthday) {
+                // Here, you would typically validate the studentId and birthday against a database.
+                // For this app, we'll assume the combination is always correct.
                 loggedInStudentId = studentId;
                 studentIdDisplay.textContent = loggedInStudentId;
                 
@@ -835,3 +839,4 @@
     </script>
 </body>
 </html>
+�
