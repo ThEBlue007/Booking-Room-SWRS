@@ -327,8 +327,17 @@
         import { getAuth, signInWithCustomToken, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
+        // แก้ไขส่วนนี้เพื่อใช้ firebaseConfig ที่ถูกต้อง
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+            apiKey: "AIzaSyDpafS0uMmopE6Q7oAIc4Fa_dH9iQCD13I",
+            authDomain: "swrs-booking-room.firebaseapp.com",
+            projectId: "swrs-booking-room",
+            storageBucket: "swrs-booking-room.firebasestorage.app",
+            messagingSenderId: "289197675575",
+            appId: "1:289197675575:web:91eacc54ae45db02021bb2",
+            measurementId: "G-GEP9PS63T2"
+        };
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
         const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
         let db;
@@ -758,7 +767,7 @@
                 setupFirestoreListener();
 
             } else {
-                showMessage('กรุณากรอกรหัสบัตรนักเรียนและวันเกิด', true);
+                showMessage('กรุณาเข้าระบบด้วยรหัสประจำตัวและวันเกิด', true);
             }
         });
 
@@ -807,10 +816,13 @@
                 const app = initializeApp(firebaseConfig);
                 db = getFirestore(app);
                 const auth = getAuth(app);
+
+                // Use the provided initialAuthToken if available
                 if (initialAuthToken) {
                     await signInWithCustomToken(auth, initialAuthToken);
                     console.log("Signed in with custom token.");
                 } else {
+                    // Fallback to anonymous sign-in if the token is not provided
                     await signInAnonymously(auth);
                     console.log("Signed in anonymously.");
                 }
